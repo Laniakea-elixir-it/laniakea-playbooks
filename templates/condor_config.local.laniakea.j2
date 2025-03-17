@@ -1,0 +1,66 @@
+# HTCondor configuration for Virtual Galaxy
+CONDOR_HOST = {{ htcondor_server }}
+
+# Security
+ALLOW_WRITE = {{ htcondor_allow_write }}
+{% if htcondor_role_manager or htcondor_role_execute %}
+ALLOW_READ = $(ALLOW_WRITE)
+{% endif %}
+ALLOW_NEGOTIATOR = {{ htcondor_allow_negotiator }}
+{% if htcondor_allow_administrator is defined %}
+ALLOW_ADMINISTRATOR = {{ htcondor_allow_administrator }}
+{% endif %}
+DAEMON_LIST = {{ ", ".join(htcondor_daemons) }}
+{% if htcondor_role_execute %}
+ALLOW_CONFIG = $(ALLOW_ADMINISTRATOR)
+ALLOW_DAEMON = $(ALLOW_ADMINISTRATOR)
+ALLOW_OWNER = $(ALLOW_ADMINISTRATOR)
+ALLOW_CLIENT = *
+{% endif %}
+FILESYSTEM_DOMAIN = {{ htcondor_domain }}
+UID_DOMAIN = {{ htcondor_domain }}
+TRUST_UID_DOMAIN = True
+SOFT_UID_DOMAIN = True
+SEC_CLIENT_AUTHENTICATION_METHODS = IDTOKENS, FS
+SEC_READ_AUTHENTICATION_METHODS = IDTOKENS, FS
+
+CGROUP_MEMORY_LIMIT_POLICY = soft
+
+{% if htcondor_role_execute %}
+# run with partitionable slots
+#CLAIM_PARTITIONABLE_LEFTOVERS = True
+NUM_SLOTS = 1
+#NUM_SLOTS_TYPE_1 = 1
+#SLOT_TYPE_1 = 100%
+#SLOT_TYPE_1_PARTITIONABLE = True
+#ALLOW_PSLOT_PREEMPTION = False
+#STARTD.PROPORTIONAL_SWAP_ASSIGNMENT = True
+{% endif %}
+
+# Job management
+# Currently disabled
+{% if htcondor_system_periodic_hold is defined %}
+SYSTEM_PERIODIC_HOLD = \
+  (JobStatus == 1 || JobStatus == 2) && \
+  ((time() - JobStartDate) >= ({{ htcondor_system_periodic_hold }}))
+SYSTEM_PERIODIC_HOLD_REASON = \
+  ifThenElse(((time() - JobStartDate) >= ({{ htcondor_system_periodic_hold }}), \
+             "Maximum wallclock time exceeded", \
+                 "Unspecified reason")
+SYSTEM_PERIODIC_REMOVE = \
+  (JobStatus == 5 && time() - EnteredCurrentStatus > {{ htcondor_system_periodic_remove }})
+{% endif %}
+
+# Scheduling
+# Currently disabled
+{% if htcondor_scheduiling is defined %}
+MASTER_UPDATE_INTERVAL = {{ htcondor_master_update_interval }}
+CLASSAD_LIFETIME = {{ htcondor_classad_lifetime }}
+NEGOTIATOR_INTERVAL = {{ htcondor_negotiator_interval }}
+NEGOTIATOR_UPDATE_INTERVAL = {{ htcondor_negotiator_update_interval }}
+SCHEDD_INTERVAL = {{ htcondor_schedd_interval }}
+JOB_START_COUNT = {{ htcondor_job_start_count }}
+JOB_START_DELAY = {{ htcondor_job_start_delay }}
+CLAIM_WORKLIFE = {{ htcondor_claim_worklife }}
+NEGOTIATOR_POST_JOB_RANK = {{ htcondor_negotiator_post_job_rank }}
+{% endif %}
